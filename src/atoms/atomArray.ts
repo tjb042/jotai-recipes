@@ -7,7 +7,9 @@ type ReadOnlyArray<T> = Pick<Array<T>,
     "flat" | "flatMap" | "forEach" | "includes" | "indexOf" |
     "join" | "keys" | "lastIndexOf" | "length" | "map" | "reduce" |
     "reduceRight" | "slice" | "some" | "toLocaleString" | "toString" |
-    "values">;
+    "values"> & Iterable<T> & {
+        [key: number]: T | undefined,
+    };
 
 export type AtomArrayActions<T> =
     { type: "copyWithin", target: number, start: number, end?: number } |
@@ -18,12 +20,22 @@ export type AtomArrayActions<T> =
     { type: "shift" } |
     { type: "sort", compareFn?: (a: T, b: T) => number } |
     { type: "splice", start: number, deleteCount?: number, values?: T | T[] } |
-    { type: "unshift", values: T | T[] }
+    { type: "unshift", values: T | T[] } |
+    { type: "set", index: number, value: T }
     ;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type AtomArray<T> = WritableAtom<{ array: ReadOnlyArray<T> }, [action: AtomArrayActions<T>], any>;
 
+/**
+ * A memory-efficient implementation of an {@link Array<T>} inside of an atom that uses
+ * a dispatcher to mutate the underlying array and force re-renders.
+ * 
+ * Note: Indexer syntax in javascript is handled automatically by the underlying array, while
+ * it's possible to override that behavior with a proxy that significantly complicates the
+ * implementation. Thus, it's critical to note that while you can get and set using the
+ * numeric indexer, setting _does not_ dispatch updates. Use the provided dispatch set method instead
+ */
 export function atomArray<T>(initialArray?: T[]): AtomArray<T> {
 
     const arrayAtom = atom<{ array: T[] }>({ array: initialArray ? [...initialArray] : [] });
@@ -82,6 +94,9 @@ export function atomArray<T>(initialArray?: T[]): AtomArray<T> {
                     else {
                         result = array.unshift(action.values);
                     }
+                    break;
+                case "set":
+                    array[action.index] = action.value;
                     break;
             }
 

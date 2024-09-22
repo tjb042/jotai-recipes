@@ -54,4 +54,25 @@ describe("atomSet", () => {
         expect(result.current[0]).not.toBe(initialWrapper);
     });
 
+    test("Dispatch state is available immediately", () => {
+        const atom = atomSet<number>();
+        const { result } = renderHook(() => useAtom(atom));
+        const [{set}, dispatch] = result.current;
+
+        const initialSize = set.size;
+        let intermediateSize = 0;
+        act(() => {
+            dispatch({ type: "add", value: 1 });
+            intermediateSize = set.size;
+
+            dispatch({ type: "add", value: 15 });
+            dispatch({ type: "add", value: 87 });
+        });
+
+        expect(initialSize).toBe(0);
+        expect(intermediateSize).toBe(1);
+        expect(result.current[0].set.size).toBe(3);
+        expect(Array.from(result.current[0].set.values())).toEqual([1, 15, 87]);
+    })
+
 });
