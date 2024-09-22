@@ -1,9 +1,12 @@
 import { atom, useAtom, WritableAtom } from "jotai";
 import { useConstant } from "../hooks/useConstant";
 
-type ReadOnlyMap<TKey, TValue> = Pick<Map<TKey, TValue>, "entries" | "forEach" | "get" | "has" | "keys" | "size" | "values"> & Iterable<[TKey, TValue]>;
+type ReadOnlyMap<TKey, TValue> = Pick<Map<TKey, TValue>, 
+    "entries" | "forEach" | "get" | "has" 
+    | "keys" | "size" | "values"
+> & Iterable<[TKey, TValue]>;
 
-type AtomMapActions<TKey, TValue> =
+export type AtomMapActions<TKey, TValue> =
     { type: "set", key: TKey, value: TValue } |
     { type: "clear" } |
     { type: "delete", key: TKey };

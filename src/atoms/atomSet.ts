@@ -3,7 +3,7 @@ import { useConstant } from "../hooks/useConstant";
 
 type ReadOnlySet<T> = Pick<Set<T>, "has" | "entries" | "forEach" | "keys" | "size" | "values"> & Iterable<T>;
 
-type AtomSetActions<T> =
+export type AtomSetActions<T> =
     { type: "add", value: T } |
     { type: "clear" } |
     { type: "delete", value: T }

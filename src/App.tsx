@@ -1,6 +1,7 @@
 import { Provider } from "jotai";
 import { ReactNode, useState } from 'react';
 import './App.css';
+import { atomArray, useAtomArray } from "./atoms/atomArray";
 import { atomMap, useAtomMap } from './atoms/atomMap';
 import { atomSet, useAtomSet } from './atoms/atomSet';
 import { useRenderCount } from './hooks/useRenderCount';
@@ -8,16 +9,23 @@ import { TreeTest } from './TreeTest';
 
 function App() {
 
-    const [test, setTest] = useState<"map" | "set" | "tree">("tree");
+    const [test, setTest] = useState<"array" | "map" | "set" | "tree">("tree");
 
     return (
         <Provider>
             <div>
                 Select test<br />
+                <button onClick={() => setTest("array")}>Array</button>
                 <button onClick={() => setTest("map")}>Map</button>
                 <button onClick={() => setTest("set")}>Set</button>
                 <button onClick={() => setTest("tree")}>Tree</button>
             </div>
+            {test === "array" && (
+                <div>
+                    Array test:
+                    <ArrayOfStuff />
+                </div>
+            )}
             {test === "map" && (
                 <div>
                     Map test:
@@ -37,6 +45,41 @@ function App() {
                 </div>
             )}
         </Provider>
+    )
+}
+
+const arrayAtom = atomArray<string>(["Initial Value"]);
+let arrayCounter = 0;
+
+function ArrayOfStuff() {
+
+    const array = useAtomArray(arrayAtom);
+    const elements: ReactNode[] = [];
+    const renders = useRenderCount();
+
+    array.forEach((value, index) => {
+        elements.push(
+            <li key={`${index}-${value}`} onClick={() => array.splice(index, 1)}>
+                {value}
+            </li>
+        )
+    })
+
+    return (
+        <div>
+            <div>
+                <span>Renders: {renders}</span>
+                <button onClick={() => array.push((arrayCounter++).toString())}>
+                    Add Item
+                </button>
+                <button onClick={() => array.splice(0, array.length)}>
+                    Clear Items
+                </button>
+            </div>
+            <ul>
+                {elements}
+            </ul>
+        </div>
     )
 }
 
