@@ -9,7 +9,7 @@ type ReadOnlyArray<T> = Pick<Array<T>,
     "reduceRight" | "slice" | "some" | "toLocaleString" | "toString" |
     "values">;
 
-type AtomArrayActions<T> =
+export type AtomArrayActions<T> =
     { type: "copyWithin", target: number, start: number, end?: number } |
     { type: "fill", value: T, start?: number, end?: number } |
     { type: "pop" } |
@@ -17,7 +17,7 @@ type AtomArrayActions<T> =
     { type: "reverse" } |
     { type: "shift" } |
     { type: "sort", compareFn?: (a: T, b: T) => number } |
-    { type: "splice", start: number, deleteCount?: number, values: T | T[] } |
+    { type: "splice", start: number, deleteCount?: number, values?: T | T[] } |
     { type: "unshift", values: T | T[] }
     ;
 
