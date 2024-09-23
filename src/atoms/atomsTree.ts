@@ -1,4 +1,4 @@
-import { Atom, atom, createStore, PrimitiveAtom } from "jotai";
+import { Atom, atom, createStore, getDefaultStore, PrimitiveAtom } from "jotai";
 
 export const TreeRoot = Symbol();
 export type TreeRoot = typeof TreeRoot;
@@ -19,7 +19,7 @@ interface ReadOnlyTreeAtoms<TKey, TNode> {
 
 export type AtomsTree<TKey, TNode extends { id: TKey }> = ReturnType<typeof atomsTree<TKey, TNode>>;
 
-export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
+export function atomsTree<TKey = string, TNode extends { id: TKey } = { id: TKey }>(store: JotaiStore = getDefaultStore()) {
 
     const atomMap = new Map<TKey | TreeRoot, TreeAtoms<TKey, TNode>>();
     atomMap.set(TreeRoot, {
@@ -28,7 +28,7 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
         children: atom<TKey[]>([])
     })
 
-    function addNode(node: TNode, parentKey: TKey | TreeRoot, toIndex?: number) {
+    function addNode(node: TNode, parentKey: TKey | TreeRoot = TreeRoot, toIndex?: number) {
         if (atomMap.has(node.id)) {
             throw new Error(`Tree already contains an item with key ${String(node.id)}`);
         }
@@ -36,6 +36,10 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
         const parentAtoms = atomMap.get(parentKey);
         if (parentAtoms === undefined) {
             throw new Error(`Tree does not contain parent key ${String(parentKey)}`)
+        }
+
+        if (node.id === parentKey) {
+            throw new Error(`Cannot add a node as a parent to itself, with key ${String(parentKey)}`)
         }
 
         // add new node into the map
@@ -59,9 +63,14 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
         return atoms as ReadOnlyTreeAtoms<TKey, TNode>;
     }
 
-    function moveNode(node: TNode, newParentKey: TKey | TreeRoot, toIndex?: number): boolean {
-        const nodeAtoms = atomMap.get(node.id);
+    function moveNode(nodeId: TKey, newParentKey: TKey | TreeRoot, toIndex?: number): boolean {
+        const nodeAtoms = atomMap.get(nodeId);
         if (nodeAtoms === undefined) {
+            return false;
+        }
+
+        const currentParent = store.get(nodeAtoms.parent);
+        if (currentParent === newParentKey) {
             return false;
         }
 
@@ -72,13 +81,13 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
 
         // remove node from the current parent's children array
         const currentParentAtoms = atomMap.get(store.get(nodeAtoms.parent))!;
-        store.set(currentParentAtoms.children, (children) => children.filter(c => c !== node.id));
+        store.set(currentParentAtoms.children, (children) => children.filter(c => c !== nodeId));
 
         // uniquely add node to the new parent's children array
-        if (!store.get(newParentAtoms.children).includes(node.id)) {
+        if (!store.get(newParentAtoms.children).includes(nodeId)) {
             store.set(newParentAtoms.children, (children) => {
                 const newChildren = [...children];
-                newChildren.splice(toIndex || children.length, 0, node.id);
+                newChildren.splice(toIndex || children.length, 0, nodeId);
 
                 return newChildren;
             });
@@ -99,6 +108,10 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
      * @param key The key of the node to remove
      */
     function removeNode(key: TKey): boolean {
+        if (key === TreeRoot) {
+            return false;
+        }
+
         const nodeAtoms = atomMap.get(key);
         if (nodeAtoms === undefined) {
             return false;
@@ -110,7 +123,7 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
             store.set(parentAtoms.children, (children) => children.filter(c => c !== key));
         }
 
-        // begin recursively deleting nodes
+        // begin recursively deleting child nodes
         const queue = [...store.get(nodeAtoms.children)];
         while (queue.length) {
             const childId = queue.pop();
@@ -126,12 +139,15 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
             }
         }
 
+        // remove me
+        atomMap.delete(key);
+
         return true;
     }
 
     /**
      * Remove all children of the given node
-     * @param key The node to remove descendants
+     * @param key The node to remove the descendants of
      */
     function removeDescendants(key: TKey | TreeRoot): boolean {
         const nodeAtoms = atomMap.get(key);
@@ -148,14 +164,14 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
     }
 
     function getRootAtoms() {
-        return getNodeAtoms(TreeRoot);
+        return getAtoms(TreeRoot);
     }
 
-    function getNodeAtoms(key: TKey | TreeRoot) {
+    function getAtoms(key: TKey | TreeRoot) {
         return atomMap.get(key) as ReadOnlyTreeAtoms<TKey, TNode> | undefined;
     }
 
-    function getNodeValue(key: TKey | TreeRoot): TNode | undefined {
+    function getValue(key: TKey | TreeRoot): TNode | undefined {
         const nodeAtoms = atomMap.get(key)
         if (nodeAtoms) {
             return store.get(nodeAtoms.node);
@@ -303,6 +319,17 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
         return true;
     }
 
+    function forEach(callback: (value: ReadOnlyTreeAtoms<TKey, TNode>, key: TKey | TreeRoot) => void) {
+        atomMap.forEach(callback);
+    }
+
+    /**
+     * Retrieves the total number of items stored in the tree. Does not include TreeRoot
+     */
+    function size() {
+        return atomMap.size - 1;
+    }
+
     return {
         addNode,
         moveNode,
@@ -310,13 +337,15 @@ export function atomsTree<TKey, TNode extends { id: TKey }>(store: JotaiStore) {
         removeDescendants,
         hasKey,
         getRootAtoms,
-        getNodeAtoms,
-        getNodeValue,
+        getAtoms,
+        getValue,
         getParentId,
         getSiblingIds,
         getChildrenIds,
         reorderUp,
         reorderDown,
-        reorderTo
+        reorderTo,
+        forEach,
+        size,
     }
 }

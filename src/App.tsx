@@ -1,6 +1,5 @@
 import { Provider } from "jotai";
 import { ReactNode, useState } from 'react';
-import './App.css';
 import { atomArray, useAtomArray } from "./atoms/atomArray";
 import { atomMap, useAtomMap } from './atoms/atomMap';
 import { atomSet, useAtomSet } from './atoms/atomSet';

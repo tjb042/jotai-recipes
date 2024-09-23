@@ -8,6 +8,9 @@ export default defineConfig({
         open: true
     },
     test: {
+        coverage: {
+            provider: "v8"
+        },
         environment: "jsdom",
     }
 })

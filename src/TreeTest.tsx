@@ -30,7 +30,7 @@ export function TreeTest() {
 
         return [
             tree,
-            tree.getNodeAtoms(TreeRoot)!
+            tree.getAtoms(TreeRoot)!
         ]
     });
 
@@ -51,7 +51,7 @@ export function TreeTest() {
 function TreeItem(props: { tree: AtomsTree<string, TreeNode>, nodeId: string, index: number }) {
 
     const { tree, nodeId, index } = props;
-    const atoms = useMemo(() => tree.getNodeAtoms(nodeId)!, [tree, nodeId]);
+    const atoms = useMemo(() => tree.getAtoms(nodeId)!, [tree, nodeId]);
     const [node, setNode] = useAtom(atoms.node);
     
     const renders = useRef(0);
