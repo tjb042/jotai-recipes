@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { atomMap, AtomMapActions } from "./atomMap";
+import { atomMap, AtomMapActions, useAtomMap } from "./atomMap";
 import { act, renderHook } from "@testing-library/react";
 import { useAtom } from "jotai";
 
@@ -67,5 +67,43 @@ describe("atomMap", () => {
         expect(intermediateSize).toBe(1);
         expect(result.current[0].map.size).toBe(4);
         expect(Array.from(result.current[0].map.entries())).toEqual([["ringo", 100], ["paul", 100], ["george", 100], ["john", 100]]);
+    });
+
+    test("Invoking an invalid action does not cause a mutation", () => {
+        const atom = atomMap<string, number>();
+        const { result } = renderHook(() => useAtom(atom));
+        const initialWrapper = result.current[0];
+
+        act(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result.current[1]({ type: "fake" } as any);
+        });
+
+        expect(result.current[0]).toBe(initialWrapper);
     })
 });
+
+describe("useAtomMap", () => {
+
+    test("Mutations available immediately and over multiple renders", () => {
+        const atom = atomMap<string, number>();
+        const { result, rerender } = renderHook(() => useAtomMap(atom));
+
+        result.current.set("initial", 15);
+        expect(result.current.size).toBe(1);
+
+        rerender();
+        expect(result.current.size).toBe(1);
+        expect(result.current.has("initial")).toBe(true);
+
+        rerender();
+        result.current.set("another", 2);
+        result.current.set("anothernother", 3);
+        expect(result.current.delete("another")).toBe(true);
+        expect(result.current.size).toBe(2);
+
+        rerender();
+        result.current.clear();
+        expect(result.current.size).toBe(0);
+    });
+})

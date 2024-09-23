@@ -66,6 +66,10 @@ export function useAtomSet<T>(atom: AtomSet<T>): ObservableSet<T> {
             return dispatch({ type: "delete", value });
         };
 
+        Object.defineProperty(setLike, "size", {
+            get: Object.getOwnPropertyDescriptor(Set.prototype, "size")!.get!.bind(set)
+        });
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (setLike as any)[Symbol.iterator] = set[Symbol.iterator].bind(set);
         setLike.entries = set.entries.bind(set);

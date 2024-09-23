@@ -156,6 +156,10 @@ export function useAtomArray<T>(atom: AtomArray<T>): ObservableArray<T> {
             return dispatch({ type: "unshift", values });
         };
 
+        Object.defineProperty(arrayLike, "length", {
+            get: Object.getOwnPropertyDescriptor(Array.prototype, "length")!.get!.bind(array)
+        });
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (arrayLike as any)[Symbol.iterator] = (array as any)[Symbol.iterator].bind(array);
         arrayLike.concat = array.concat.bind(array);

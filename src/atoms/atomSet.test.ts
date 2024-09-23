@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { useAtom } from "jotai";
 import { describe, expect, test } from "vitest";
-import { atomSet, AtomSetActions } from "./atomSet";
+import { atomSet, AtomSetActions, useAtomSet } from "./atomSet";
 
 /**
  * Each of the following tests rely on the fact that the underlying atom returns a ref-style object.
@@ -75,4 +75,42 @@ describe("atomSet", () => {
         expect(Array.from(result.current[0].set.values())).toEqual([1, 15, 87]);
     })
 
+    test("Invoking an invalid action does not cause a mutation", () => {
+        const atom = atomSet<string>();
+        const { result } = renderHook(() => useAtom(atom));
+        const initialWrapper = result.current[0];
+
+        act(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            result.current[1]({ type: "fake" } as any);
+        });
+
+        expect(initialWrapper).toBe(result.current[0]);
+    });
+
 });
+
+describe("useAtomSet", () => {
+
+    test("Mutations available immediately and over multiple renders", () => {
+        const atom = atomSet<string>();
+        const { result, rerender } = renderHook(() => useAtomSet(atom));
+
+        result.current.add("one");
+        expect(result.current.size).toBe(1);
+
+        rerender();
+        expect(result.current.size).toBe(1);
+
+        rerender();
+        result.current.add("two");
+        result.current.add("three");
+        expect(result.current.delete("three")).toBe(true);
+        expect(result.current.size).toBe(2);
+
+        rerender();
+        result.current.clear();
+        expect(result.current.size).toBe(0);
+    })
+
+})

@@ -69,6 +69,10 @@ export function useAtomMap<TKey, TValue>(atom: AtomMap<TKey, TValue>): Observabl
             return this;
         };
 
+        Object.defineProperty(mapLike, "size", {
+            get: Object.getOwnPropertyDescriptor(Map.prototype, "size")!.get!.bind(map)
+        });
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (mapLike as any)[Symbol.iterator] = map[Symbol.iterator].bind(map);
         mapLike.entries = map.entries.bind(map);
